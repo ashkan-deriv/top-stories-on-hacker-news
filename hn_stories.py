@@ -2,23 +2,46 @@ import requests
 import json
 from datetime import datetime
 
+def is_relevant_story(title, text=""):
+    """Check if the story is related to AI, low-code, or no-code"""
+    keywords = [
+        # AI related
+        'ai', 'artificial intelligence', 'machine learning', 'ml', 'deep learning',
+        'neural network', 'llm', 'large language model', 'gpt', 'chatgpt',
+        'openai', 'anthropic', 'claude', 'gemini', 'mistral', 'llama',
+        
+        # Low-code/No-code related
+        'low-code', 'no-code', 'nocode', 'lowcode', 'visual programming',
+        'drag and drop', 'citizen developer', 'bubble.io', 'webflow',
+        'zapier', 'airtable', 'retool', 'power apps', 'mendix', 'outsystems'
+    ]
+    
+    # Convert to lowercase for case-insensitive matching
+    title_lower = title.lower()
+    text_lower = text.lower() if text else ""
+    
+    # Check if any keyword is present in title or text
+    return any(keyword in title_lower or keyword in text_lower for keyword in keywords)
+
 def fetch_top_stories():
     # Fetch top stories IDs
     top_stories_url = "https://hacker-news.firebaseio.com/v0/topstories.json"
-    story_ids = requests.get(top_stories_url).json()[:30]  # Get top 30 stories
+    story_ids = requests.get(top_stories_url).json()[:100]  # Get more stories to filter from
     
     stories = []
     for story_id in story_ids:
         story_url = f"https://hacker-news.firebaseio.com/v0/item/{story_id}.json"
         story = requests.get(story_url).json()
         if story and 'title' in story:
-            stories.append({
-                'title': story.get('title'),
-                'url': story.get('url', f'https://news.ycombinator.com/item?id={story_id}'),
-                'score': story.get('score', 0),
-                'by': story.get('by', 'unknown'),
-                'time': datetime.fromtimestamp(story.get('time', 0)).strftime('%Y-%m-%d %H:%M:%S')
-            })
+            # Check if story is relevant before adding
+            if is_relevant_story(story.get('title', ''), story.get('text', '')):
+                stories.append({
+                    'title': story.get('title'),
+                    'url': story.get('url', f'https://news.ycombinator.com/item?id={story_id}'),
+                    'score': story.get('score', 0),
+                    'by': story.get('by', 'unknown'),
+                    'time': datetime.fromtimestamp(story.get('time', 0)).strftime('%Y-%m-%d %H:%M:%S')
+                })
     return stories
 
 def generate_html(stories):
@@ -26,7 +49,7 @@ def generate_html(stories):
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Hacker News Top Stories</title>
+    <title>Hacker News - AI & Low-Code Stories</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -65,7 +88,7 @@ def generate_html(stories):
     </style>
 </head>
 <body>
-    <h1>Hacker News Top Stories</h1>
+    <h1>Hacker News - AI & Low-Code Stories</h1>
     """
     
     for story in stories:
